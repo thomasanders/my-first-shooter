@@ -12,7 +12,8 @@ collisionCanvas.height = window.innerHeight;
 
 
 let score = 0;
-ctx.font = '50px Impact' // size of score 
+let gameOver = false;
+ctx.font = '50px Impact'; // size of score 
 
 let timeToNextRaven = 0;
 let ravenInterval = 500;
@@ -38,6 +39,8 @@ class Raven {
         this.maxFrame = 4;
         this.timeSinceFlap = 0;
         this.flapInterval = Math.random() * 50 + 50;
+        this.randomColors = [Math.floor(Math.random() * 255),Math.floor(Math.random() * 255), Math.floor(Math.random() * 255)];
+        this.color = 'rgb('+ this.randomColors[0] + ',' + this.randomColors[1] + ',' + this.randomColors[2] + ')';
 
         
 
@@ -55,13 +58,52 @@ class Raven {
             else this.frame++;
             this.timeSinceFlap = 0;
         }
+        if (this.x < 0 - this.width ) gameOver = true;
 
     }
     draw(){
-        ctx.strokeRect(this.x, this.y, this.width, this.height);
+        collisionCtx.fillStyle = this.color;
+        collisionCtx.fillRect(this.x, this.y, this.width, this.height);
         ctx.drawImage(this.image, this.frame * this.spriteWidth, 0 , this.spriteWidth, this.spriteHeight, this.x, this.y, this.width, this.height);
     }
+
+
 }
+let explosion = [];
+class Explosion {
+    constructor(x, y, size){
+        this.image = new Image();
+        this.image.src = 'boom.png';
+        this.spriteWidth = 200;
+        this.spriteHeight = 179;
+        this.size = size;
+        this.x = x;
+        this.y = y;
+        this.frame = 0;
+        this.sound = new Audio();
+        this.sound.src = 'Ice attack 2.wav';  
+        this.timeSinceLastframe = 0;
+        this.frameInterval = 200;
+        this.markedForDeletion = false;
+    }
+    update(deltatime){
+        if (this.frame === 0) this.sound.play();
+        this.timeSinceLastframe += deltatime;
+        if (this.timeSinceLastframe > this.frameInterval){
+            this.frame++;
+            this.timeSinceLastframe = 0;
+            
+            if (this.frame > 5) this.markedForDeletion = true;
+        }
+    }
+    draw(){
+        ctx.drawImage(this.image, this.frame * this.spriteWidth, 0,
+             this.spriteWidth, this.spriteHeight, this.x, this.y - this.size/4, this.size, this.size )
+        }
+
+    }
+
+
 function drewScore(){
     ctx.fillStyle = 'black';
     ctx.fillText('Score: ' + score, 50, 75); //score shadow
@@ -71,27 +113,42 @@ function drewScore(){
 }
 
 window.addEventListener('click', function(e){ // click event before rave desapear
-    const detectPixelColor = ctx.getImageData(e.x, e.y, 1, 1) // 1,1 is one pixel precision ;)
+    const detectPixelColor = collisionCtx.getImageData(e.x, e.y, 1, 1); // 1,1 is one pixel precision ;)
     console.log(detectPixelColor);
+    const pc = detectPixelColor.data;
+    ravens.forEach(object => {
+        if (object.randomColors[0] === pc[0] && object.randomColors[1] === pc[1] && object.randomColors[2] === pc[2]){
+            object.markedForDeletion = true;
+            score++; // if colision 
+            explosion.push(new Explosion(object.x, object.y, object.width));
+            console.log(explosions);
+        }
+    });
     
 
-}) 
+}); 
 
 function animate(timestamp){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    collisionCtx.clearRect(0, 0, canvas.width, canvas.height);
     let deltatime = timestamp - lastTime;
     lastTime = timestamp;
     timeToNextRaven += deltatime;
     if (timeToNextRaven > ravenInterval){
         ravens.push(new Raven());
         timeToNextRaven = 0;
+        ravens.sort(function(a,b){
+            return a.width - b.width;
+
+        });
     };
     drewScore(); // this place is under ravens
-    [...ravens].forEach(object => object.update(deltatime));
-    [...ravens].forEach(object => object.draw());
+    [...ravens, ...explosion].forEach(object => object.update(deltatime));
+    [...ravens, ...explosion].forEach(object => object.draw());
     ravens = ravens.filter(object => ! object.markedForDeletion);
+    explosion = explosion.filter(object => ! object.markedForDeletion);
     
-    requestAnimationFrame(animate);
+    if (!gameOver) requestAnimationFrame(animate);
 }
 animate(0);
 
