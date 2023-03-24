@@ -2,6 +2,15 @@ const canvas = document.getElementById('canvas1');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerHeight;
 canvas.height = window.innerHeight;
+
+const collisionCanvas = document.getElementById('collisionCanvas');
+const collisionCtx = collisionCanvas.getContext('2d');
+collisionCanvas.width = window.innerHeight;
+collisionCanvas.height = window.innerHeight;
+
+
+
+
 let score = 0;
 ctx.font = '50px Impact' // size of score 
 
@@ -50,14 +59,23 @@ class Raven {
     }
     draw(){
         ctx.strokeRect(this.x, this.y, this.width, this.height);
-        ctx.drawImage(this.image,this.frame * this.spriteWidth, 0 ,this.spriteWidth, this.spriteHeight, this.x, this.y, this.width, this.height)
+        ctx.drawImage(this.image, this.frame * this.spriteWidth, 0 , this.spriteWidth, this.spriteHeight, this.x, this.y, this.width, this.height);
     }
 }
 function drewScore(){
+    ctx.fillStyle = 'black';
+    ctx.fillText('Score: ' + score, 50, 75); //score shadow
     ctx.fillStyle = 'white';
-    ctx.fillText('Score: ' + score, 50, 75);
+    ctx.fillText('Score: ' + score, 50, 80);
 
 }
+
+window.addEventListener('click', function(e){ // click event before rave desapear
+    const detectPixelColor = ctx.getImageData(e.x, e.y, 1, 1) // 1,1 is one pixel precision ;)
+    console.log(detectPixelColor);
+    
+
+}) 
 
 function animate(timestamp){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
